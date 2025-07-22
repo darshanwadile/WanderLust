@@ -1,0 +1,44 @@
+<% layout("/layouts/boilerplate") %>
+<script>
+    // The API key is no longer needed here.
+    const listing = <%- JSON.stringify(listing) %>;
+</script>
+
+<body>
+    ```
+
+---
+### ## 4. Replace Your `public/js/map.js`
+
+This is the most important change. Replace the entire contents of your `public/js/map.js` file with the following Google Maps code.
+
+```javascript
+// public/js/map.js
+
+// This function is called automatically by the Google Maps script
+function initMap() {
+    // The 'listing' variable is available here because we defined it in show.ejs
+    const coordinates = listing.geometry.coordinates;
+    const mapCenter = { lat: coordinates[1], lng: coordinates[0] };
+
+    // Create a new map centered on the listing's location
+    const map = new google.maps.Map(document.getElementById('map'), {
+        zoom: 10,
+        center: mapCenter,
+    });
+
+    // Create a marker at the listing's location
+    const marker = new google.maps.Marker({
+        position: mapCenter,
+        map: map,
+    });
+
+    // Optional: Add an info window that appears when you click the marker
+    const infowindow = new google.maps.InfoWindow({
+        content: `<h6>${listing.title}</h6><p>${listing.location}</p>`,
+    });
+
+    marker.addListener('click', () => {
+        infowindow.open(map, marker);
+    });
+}
