@@ -9,7 +9,7 @@ WanderLust allows users to explore and reserve vacation properties, as well as l
 
 ---
 
-## 🌐 Front-end
+## 🌐 Frontend
 **Technologies Used:** HTML, CSS, JavaScript, Bootstrap, EJS
 
 **Features:**
@@ -19,7 +19,7 @@ WanderLust allows users to explore and reserve vacation properties, as well as l
 
 ---
 
-## 🛠️ Back-end
+## 🛠️ Backend
 **Technologies Used:** Node.js, Express.js
 
 **Features:**
