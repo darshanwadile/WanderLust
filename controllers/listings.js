@@ -1,9 +1,13 @@
 const Listing = require("../models/listing");
-// 1. Import the Google Maps client
-const { Client } = require("@googlemaps/google-maps-services-js");
+// Replaced Mapbox with node-geocoder
+const NodeGeocoder = require("node-geocoder");
 
-// 2. Initialize the Google Maps client (it doesn't need the key here)
-const mapsClient = new Client({});
+// Set up the options for OpenStreetMap
+const options = {
+  provider: "openstreetmap",
+};
+
+const geocoder = NodeGeocoder(options);
 
 module.exports.index = async (req, res) => {
   let allListings = await Listing.find();
@@ -21,41 +25,35 @@ module.exports.showListing = async (req, res) => {
     .populate("owner");
   if (!listing) {
     req.flash("error", "Listing you requested for does not exist!");
-    return res.redirect("/listings");
+    res.redirect("/listings");
   }
   res.render("listings/show.ejs", { listing });
 };
 
+// UPDATED createListing function
 module.exports.createListing = async (req, res, next) => {
-  // 3. Use the Google Maps geocode method
-  const response = await mapsClient.geocode({
-    params: {
-      address: req.body.listing.location,
-      key: process.env.Maps_API_KEY, // Pass your API key from .env
-    },
-  });
+  // Use node-geocoder
+  let data = await geocoder.geocode(req.body.listing.location);
 
-  // Check if Google found a location
-  if (!response.data.results.length) {
-    req.flash("error", "Invalid location. Please provide a valid address.");
+  // Error handling if location is not found
+  if (!data.length) {
+    req.flash("error", "Location not found. Please enter a valid address.");
     return res.redirect("/listings/new");
   }
 
-  const newListing = new Listing(req.body.listing);
-  newListing.owner = req.user._id;
-  
-  // Handle image upload
   let url = req.file.path;
   let filename = req.file.filename;
+
+  const newListing = new Listing(req.body.listing);
+  newListing.owner = req.user._id;
   newListing.image = { filename, url };
 
-  // 4. Save geometry in GeoJSON format from the Google API response
-  const location = response.data.results[0].geometry.location;
+  // Save geometry in GeoJSON format from node-geocoder response
   newListing.geometry = {
     type: "Point",
-    coordinates: [location.lng, location.lat], // [longitude, latitude]
+    coordinates: [data[0].longitude, data[0].latitude],
   };
-  
+
   await newListing.save();
   req.flash("success", "New listing created!");
   res.redirect("/listings");
@@ -66,36 +64,36 @@ module.exports.renderEditForm = async (req, res) => {
   let listing = await Listing.findById(id);
   if (!listing) {
     req.flash("error", "Listing you trying to edit for does not exist!");
-    return res.redirect("/listings");
+    res.redirect("/listings");
   }
   let imageUrl = listing.image.url;
   imageUrl = imageUrl.replace("/upload", "/upload/w_250,h_160");
   res.render("listings/edit.ejs", { listing, imageUrl });
 };
 
+// UPDATED updateListing function
 module.exports.updateListing = async (req, res, next) => {
   let { id } = req.params;
-  
-  // 5. Update geocoding call for the update route
-  const response = await mapsClient.geocode({
-    params: {
-      address: `${req.body.listing.location}, ${req.body.listing.country}`,
-      key: process.env.Maps_API_KEY,
-    },
-  });
 
-  // Add the geometry to the request body before updating
-  if (response.data.results.length) {
-      const location = response.data.results[0].geometry.location;
-      req.body.listing.geometry = {
-          type: "Point",
-          coordinates: [location.lng, location.lat],
-      };
+  // Use node-geocoder
+  let data = await geocoder.geocode(
+    `${req.body.listing.location}, ${req.body.listing.country}`
+  );
+
+  // Error handling if location is not found
+  if (!data.length) {
+    req.flash("error", "Location not found. Please enter a valid address.");
+    return res.redirect(`/listings/${id}/edit`);
   }
 
-  let updatedListing = await Listing.findByIdAndUpdate(id, {
-    ...req.body.listing,
-  });
+  // Update the listing data with the new geometry
+  const listingData = req.body.listing;
+  listingData.geometry = {
+    type: "Point",
+    coordinates: [data[0].longitude, data[0].latitude],
+  };
+
+  let updatedListing = await Listing.findByIdAndUpdate(id, { ...listingData });
 
   if (typeof req.file !== "undefined") {
     let url = req.file.path;
@@ -103,12 +101,10 @@ module.exports.updateListing = async (req, res, next) => {
     updatedListing.image = { url, filename };
     await updatedListing.save();
   }
-
   req.flash("success", "Listing updated!");
   res.redirect(`/listings/${id}`);
 };
 
-// No changes needed for filter, search, destroyListing, or reserveListing
 module.exports.filter = async (req, res, next) => {
   let { id } = req.params;
   let allListings = await Listing.find({ category: { $all: [id] } });
