@@ -42,10 +42,10 @@
 #### Deployment 🚀
 The WanderLust project has been deployed using Render, connected with MongoDB Atlas for database management.
 
-- **Live Application**: [WanderLust Project](https://wanderlust-travel-listings.onrender.com/)
+- **Live Application**: [WanderLust Project](https://wanderlust-m1g7.onrender.com)
 
 #### Authors ✍️
-- **@resmit-dholariya**
+- **@darshaanwadile**
 
 This WanderLust project showcases my proficiency in full-stack web development, from creating an engaging front-end to managing the back-end and database components. It allows users to search for properties and experience the key functionalities of a vacation rental platform in a seamless and secure manner.
 
